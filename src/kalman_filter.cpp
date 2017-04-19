@@ -58,18 +58,18 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   const double vy = x_(3);
 
   //pre-compute a set of terms to avoid repeated calculation
-  const double c1 = px * px + py * py;
+  double c1 = px * px + py * py;
+  if (fabs(c1) < 1e-4) {
+    c1 = 1e-4; // some small number and positive
+  }
   const double c2 = sqrt(c1);
-  //const double c3 = (c1 * c2);
-
+  
   VectorXd z_pred = VectorXd(3);
   z_pred(0) = c2;
   z_pred(1) = std::atan2(py, px);
 
   // stability check
-  if (fabs(c1) > 0.0001) {
-    z_pred(2) = (px * vx + py * vy) / c2;
-  }
+  z_pred(2) = (px * vx + py * vy) / c2;
   VectorXd y = z - z_pred;
 
   auto angle_norm = [](double x) {
@@ -85,15 +85,15 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
 }
 
 void KalmanFilter::UpdateCommon(const Eigen::VectorXd &y) {
-  MatrixXd Ht = H_.transpose();
-  MatrixXd S = H_ * P_ * Ht + R_;
-  MatrixXd Si = S.inverse();
-  MatrixXd PHt = P_ * Ht;
-  MatrixXd K = PHt * Si;
+  const MatrixXd Ht = H_.transpose();
+  const MatrixXd P_Ht = P_ * Ht;
+  const MatrixXd S = H_ * P_Ht + R_;
+  const MatrixXd Si = S.inverse();
+  const MatrixXd K = P_Ht * Si;
 
   //new estimate
   x_ = x_ + (K * y);
-  long x_size = x_.size();
-  MatrixXd I = MatrixXd::Identity(x_size, x_size);
+  const long x_size = x_.size();
+  const MatrixXd I = MatrixXd::Identity(x_size, x_size);
   P_ = (I - K * H_) * P_;
 }

@@ -60,19 +60,19 @@ MatrixXd Tools::CalculateJacobian(const VectorXd &x_state) {
   const double vy = x_state(3);
 
   //pre-compute a set of terms to avoid repeated calculation
-  const double c1 = px * px + py * py;
+  double c1 = px * px + py * py;
+  if (fabs(c1) < 1e-4) {
+    c1 = 1e-4; // some small number and positive
+  }
   const double c2 = sqrt(c1);
   const double c3 = (c1 * c2);
 
   Eigen::MatrixXd H = Eigen::MatrixXd::Zero(3, 4);
 
-  //check division by zero
-  if (fabs(c1) > 0.0001) {
-    //compute the Jacobian matrix
-    H << (px / c2), (py / c2), 0, 0,
-        -(py / c1), (px / c1), 0, 0,
-        py * (vx * py - vy * px) / c3, px * (px * vy - py * vx) / c3, px / c2, py / c2;
-  }
+  //compute the Jacobian matrix
+  H << (px / c2), (py / c2), 0, 0,
+      -(py / c1), (px / c1), 0, 0,
+      py * (vx * py - vy * px) / c3, px * (px * vy - py * vx) / c3, px / c2, py / c2;
 
   return H;
 
